@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализатор расходов производства СП</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --blue-color: #0066cc;
+            --orange-color: #ff9900;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .table th {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* Жирные цифры в таблице */
+        .loss-value {
+            font-weight: 700 !important;
+            font-size: 1.05em;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border: none;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .result-card {
+            border-left: 5px solid var(--danger-color);
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        .pdf-loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 18px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        /* Стили для печати */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-section, #print-section * {
+                visibility: visible;
+            }
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+                background: white;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pdf-loading" id="pdf-loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">
+            Формирование отчета...<br>
+            <small>Пожалуйста, подождите.</small>
+        </div>
+    </div>
+
+    <div class="header no-print">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="bi bi-graph-down"></i> Анализатор производственных расходов СП</h1>
+                    <p class="lead">Выявите скрытые потери и оптимизируйте затраты на производстве светопрозрачных конструкций</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="card text-dark p-3">
+                        <small class="text-muted">Текущая дата</small>
+                        <div id="current-date" class="h5 mb-0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container no-print">
+        <!-- Форма ввода данных -->
+        <div class="card">
+            <div class="card-body">
+                <h3 class="section-title"><i class="bi bi-input-cursor-text"></i> Ввод производственных данных</h3>
+                
+                <form id="expense-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Объем производства, м²/год</label>
+                                <input type="number" class="form-control" id="yearly-volume" value="120000" min="1200" step="100" required>
+                                <div class="form-text">Годовой объем светопрозрачных конструкций</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Плановая маржинальность, %</label>
+                                <input type="number" class="form-control" id="target-margin" value="5" min="0" max="50" step="0.5" required>
+                                <div class="form-text">Целевой уровень рентабельности</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Средняя цена СПО, руб/м²</label>
+                                <input type="number" class="form-control" id="spo-price" value="1600" min="500" step="50" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <!-- Взаимосвязанные поля для СПО и СПД -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Доля СПО (однокамерных), %</label>
+                                        <input type="number" class="form-control" id="spo-percent" value="65" min="0" max="100" step="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Доля СПД (двухкамерных), %</label>
+                                        <input type="number" class="form-control" id="spd-percent" value="35" min="0" max="100" step="1" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" style="width: 65%; background-color: var(--blue-color)">СПО: 65%</div>
+                                    <div class="progress-bar" style="width: 35%; background-color: var(--orange-color)">СПД: 35%</div>
+                                </div>
+                                <div class="form-text text-center">Распределение производства по типам конструкций</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Средняя цена СПД, руб/м²</label>
+                                <input type="number" class="form-control" id="spd-price" value="2200" min="800" step="50" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3"><i class="bi bi-exclamation-triangle"></i> Данные по рекламациям и браку</h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Количество рекламаций в месяц, шт</label>
+                                <input type="number" class="form-control" id="defects-count" value="25" min="0" step="1" required>
+                                <div class="form-text">Среднее количество в месяц</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Средняя стоимость переделки, руб/шт</label>
+                                <input type="number" class="form-control" id="defect-cost" value="7200" min="0" step="100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Средняя площадь брака, м²/шт</label>
+                                <input type="number" class="form-control" id="avg-defect-area" value="1.2" min="0.5" max="5" step="0.1" required>
+                                <div class="form-text">Для расчета доставки</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Повторная доставка, руб/м²</label>
+                                <input type="number" class="form-control" id="redelivery-cost" value="50" min="0" step="5" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Дополнительные расходы</h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Ремонт оборудования, руб/год</label>
+                                <input type="number" class="form-control" id="repair-cost" value="360000" min="0" step="1000" required>
+                                <div class="form-text">Сумма на год</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Доп. скидки клиентам, руб/год</label>
+                                <input type="number" class="form-control" id="discounts-cost" value="600000" min="0" step="1000" required>
+                                <div class="form-text">Сумма на год</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Перерасход герметика, %</label>
+                                <input type="number" class="form-control" id="overconsumption" value="12" min="0" max="100" step="0.5" required>
+                                <div class="form-text">От плановой нормы</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Цена герметика, руб/литр</label>
+                                <input type="number" class="form-control" id="sealant-price" value="220" min="50" step="5" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-primary btn-lg" onclick="calculateLosses()">
+                            <i class="bi bi-calculator"></i> Рассчитать потери
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="resetForm()">
+                            <i class="bi bi-arrow-clockwise"></i> Сбросить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Результаты анализа -->
+        <div id="results-section" style="display: none;">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h3 class="section-title"><i class="bi bi-clipboard-data"></i> Выявленные потери</h3>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Категория потерь</th>
+                                            <th>Сумма в месяц</th>
+                                            <th>Сумма в год</th>
+                                            <th>% от общих потерь</th>
+                                            <th>Приоритет</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="losses-table">
+                                        <!-- Заполняется JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h5><i class="bi bi-pie-chart"></i> Структура потерь</h5>
+                                <div class="chart-container">
+                                    <canvas id="losses-chart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h5><i class="bi bi-lightbulb"></i> Рекомендации по оптимизации</h5>
+                                <div id="recommendations">
+                                    <!-- Заполняется JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h3 class="section-title"><i class="bi bi-speedometer2"></i> Сводные показатели</h3>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Плановая маржа</span>
+                                    <strong id="planned-margin">5%</strong>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" id="planned-margin-bar" style="width: 5%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Фактическая маржа</span>
+                                    <strong id="actual-margin">0%</strong>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-warning" id="actual-margin-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="loss-item">
+                                <h6 class="text-danger">Общие потери в год</h6>
+                                <h2 id="total-losses-year">0 руб.</h2>
+                                <small class="text-muted">≈ <span id="total-losses-per-month">0</span> руб./мес</small>
+                            </div>
+                            
+                            <div class="loss-item savings">
+                                <h6 class="text-success">Потенциальная экономия в год</h6>
+                                <h2 id="yearly-savings">0 руб.</h2>
+                                <small class="text-muted">При устранении 80% потерь</small>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h6><i class="bi bi-currency-exchange"></i> Формирование отчета</h6>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary" onclick="generatePDFReport()">
+                                        <i class="bi bi-file-earmark-pdf"></i> Сформировать отчет PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция для печати -->
+        <div id="print-section" style="display: none;">
+            <!-- Содержимое будет заполнено динамически -->
+        </div>
+    </div>
+
+    <!-- Подключаем библиотеки -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Инициализация даты
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('ru-RU', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        // Глобальная переменная для хранения диаграммы
+        let lossesChart = null;
+        
+        // Взаимосвязь полей СПО и СПД
+        const spoPercentInput = document.getElementById('spo-percent');
+        const spdPercentInput = document.getElementById('spd-percent');
+        
+        let lastChanged = 'spo';
+        
+        spoPercentInput.addEventListener('input', function() {
+            lastChanged = 'spo';
+            updatePercentages();
+        });
+        
+        spdPercentInput.addEventListener('input', function() {
+            lastChanged = 'spd';
+            updatePercentages();
+        });
+        
+        function updatePercentages() {
+            let spoPercent = parseInt(spoPercentInput.value) || 0;
+            let spdPercent = parseInt(spdPercentInput.value) || 0;
+            
+            if (spoPercent + spdPercent !== 100) {
+                if (lastChanged === 'spo') {
+                    spdPercent = 100 - spoPercent;
+                    spdPercentInput.value = spdPercent;
+                } else {
+                    spoPercent = 100 - spdPercent;
+                    spoPercentInput.value = spoPercent;
+                }
+            }
+            
+            spoPercent = Math.min(100, Math.max(0, spoPercent));
+            spdPercent = Math.min(100, Math.max(0, spdPercent));
+            
+            document.querySelector('.progress-bar:nth-child(1)').style.width = spoPercent + '%';
+            document.querySelector('.progress-bar:nth-child(1)').textContent = 'СПО: ' + spoPercent + '%';
+            document.querySelector('.progress-bar:nth-child(2)').style.width = spdPercent + '%';
+            document.querySelector('.progress-bar:nth-child(2)').textContent = 'СПД: ' + spdPercent + '%';
+            
+            return { spoPercent, spdPercent };
+        }
+        
+        // Основная функция расчета с ПРАВИЛЬНЫМ расчетом повторной доставки
+        function calculateLosses() {
+            const percentages = updatePercentages();
+            const yearlyVolume = parseFloat(document.getElementById('yearly-volume').value);
+            const monthlyVolume = yearlyVolume / 12;
+            
+            const data = {
+                monthlyVolume: monthlyVolume,
+                spoPercent: percentages.spoPercent / 100,
+                spdPercent: percentages.spdPercent / 100,
+                spoPrice: parseFloat(document.getElementById('spo-price').value),
+                spdPrice: parseFloat(document.getElementById('spd-price').value),
+                targetMargin: parseFloat(document.getElementById('target-margin').value) / 100,
+                defectsCount: parseFloat(document.getElementById('defects-count').value),
+                defectCost: parseFloat(document.getElementById('defect-cost').value),
+                avgDefectArea: parseFloat(document.getElementById('avg-defect-area').value), // 1.2 м²/шт
+                redeliveryCost: parseFloat(document.getElementById('redelivery-cost').value),
+                repairCost: parseFloat(document.getElementById('repair-cost').value) / 12,
+                discountsCost: parseFloat(document.getElementById('discounts-cost').value) / 12,
+                overconsumption: parseFloat(document.getElementById('overconsumption').value) / 100,
+                sealantPrice: parseFloat(document.getElementById('sealant-price').value)
+            };
+            
+            // Расчет объемов
+            const spoVolume = data.monthlyVolume * data.spoPercent;
+            const spdVolume = data.monthlyVolume * data.spdPercent;
+            
+            // Нормы расхода герметика
+            const sealantNormSPO = 0.15;
+            const sealantNormSPD = 0.30;
+            
+            // ПРАВИЛЬНЫЙ РАСЧЕТ ПОВТОРНОЙ ДОСТАВКИ:
+            // Объем продукции, попадающий в брак (м²) = количество рекламаций × среднюю площадь брака
+            const spoiledVolume = data.defectsCount * data.avgDefectArea; // 25 шт × 1.2 м²/шт = 30 м²
+            
+            // Расчет потерь по категориям (в месяц)
+            const monthlyLosses = {
+                defects: data.defectsCount * data.defectCost, // Стоимость переделки
+                redelivery: spoiledVolume * data.redeliveryCost, // ТОЛЬКО для бракованной продукции!
+                discounts: data.discountsCost,
+                equipment: data.repairCost,
+                overconsumption: (spoVolume * sealantNormSPO + spdVolume * sealantNormSPD) * 
+                                data.overconsumption * data.sealantPrice,
+                marginLoss: (spoVolume * data.spoPrice + spdVolume * data.spdPrice) * 
+                           data.targetMargin * 0.25
+            };
+            
+            monthlyLosses.total = Object.values(monthlyLosses).reduce((a, b) => a + b, 0);
+            
+            // Годовые потери
+            const yearlyLosses = {
+                defects: monthlyLosses.defects * 12,
+                redelivery: monthlyLosses.redelivery * 12,
+                discounts: monthlyLosses.discounts * 12,
+                equipment: monthlyLosses.equipment * 12,
+                overconsumption: monthlyLosses.overconsumption * 12,
+                marginLoss: monthlyLosses.marginLoss * 12,
+                total: monthlyLosses.total * 12
+            };
+            
+            // Расчет маржи
+            const monthlyRevenue = spoVolume * data.spoPrice + spdVolume * data.spdPrice;
+            const yearlyRevenue = monthlyRevenue * 12;
+            const plannedMargin = yearlyRevenue * data.targetMargin;
+            const actualMargin = Math.max(0, plannedMargin - yearlyLosses.total);
+            const actualMarginPercent = Math.max(0, (actualMargin / yearlyRevenue) * 100);
+            
+            displayResults(monthlyLosses, yearlyLosses, yearlyRevenue, plannedMargin, actualMarginPercent, data);
+            document.getElementById('results-section').style.display = 'block';
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'RUB',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+        
+        function displayResults(monthlyLosses, yearlyLosses, revenue, plannedMargin, actualMarginPercent, data) {
+            // Общие потери
+            document.getElementById('total-losses-year').textContent = formatCurrency(yearlyLosses.total);
+            document.getElementById('total-losses-per-month').textContent = formatCurrency(monthlyLosses.total);
+            
+            // Маржа
+            const plannedMarginPercent = (plannedMargin / revenue * 100).toFixed(1);
+            document.getElementById('planned-margin').textContent = plannedMarginPercent + '%';
+            document.getElementById('planned-margin-bar').style.width = plannedMarginPercent + '%';
+            
+            document.getElementById('actual-margin').textContent = actualMarginPercent.toFixed(1) + '%';
+            document.getElementById('actual-margin-bar').style.width = actualMarginPercent + '%';
+            
+            // Годовая экономия
+            const yearlySavings = yearlyLosses.total * 0.8;
+            document.getElementById('yearly-savings').textContent = formatCurrency(yearlySavings);
+            
+            // Таблица потерь с ЖИРНЫМИ цифрами и ИЗМЕНЕННЫМИ ЦВЕТАМИ
+            const categories = [
+                { name: 'Брак и рекламации', value: monthlyLosses.defects, yearly: yearlyLosses.defects, color: '#e74c3c' }, // красный
+                { name: 'Повторная доставка', value: monthlyLosses.redelivery, yearly: yearlyLosses.redelivery, color: '#34495e' }, // темно-синий (бывший цвет Потерь маржи)
+                { name: 'Дополнительные скидки', value: monthlyLosses.discounts, yearly: yearlyLosses.discounts, color: '#3498db' }, // синий
+                { name: 'Ремонт оборудования', value: monthlyLosses.equipment, yearly: yearlyLosses.equipment, color: '#9b59b6' }, // фиолетовый
+                { name: 'Перерасход материалов', value: monthlyLosses.overconsumption, yearly: yearlyLosses.overconsumption, color: '#1abc9c' }, // бирюзовый
+                { name: 'Потери маржи', value: monthlyLosses.marginLoss, yearly: yearlyLosses.marginLoss, color: '#f39c12' } // оранжевый (бывший цвет Повторной доставки)
+            ];
+            
+            let tableHTML = '';
+            categories.forEach(cat => {
+                const percent = (cat.value / monthlyLosses.total * 100).toFixed(1);
+                const priority = cat.value > monthlyLosses.total * 0.25 ? 'Высокий' : 
+                                cat.value > monthlyLosses.total * 0.1 ? 'Средний' : 'Низкий';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${cat.name}</td>
+                        <td class="loss-value">${formatCurrency(cat.value)}</td>
+                        <td class="loss-value">${formatCurrency(cat.yearly)}</td>
+                        <td>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar" style="width: ${percent}%; background-color: ${cat.color}"></div>
+                            </div>
+                            <small>${percent}%</small>
+                        </td>
+                        <td>
+                            <span class="badge ${priority === 'Высокий' ? 'bg-danger' : priority === 'Средний' ? 'bg-warning' : 'bg-secondary'}">
+                                ${priority}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('losses-table').innerHTML = tableHTML;
+            
+            // Рекомендации
+            const recommendations = [
+                { 
+                    title: 'Оптимизация контроля качества', 
+                    text: `Внедрить систему контроля на каждом этапе производства. Ожидаемая экономия: ${formatCurrency(yearlyLosses.defects * 0.6)} в год`
+                },
+                { 
+                    title: 'Стандартизация норм расхода', 
+                    text: `Внедрить автоматический учет расхода герметика. Потенциальная экономия: ${formatCurrency(yearlyLosses.overconsumption * 0.7)} в год`
+                },
+                { 
+                    title: 'План технического обслуживания', 
+                    text: `Регулярное ТО оборудования снизит затраты на ремонт на 40-60%. Экономия: ${formatCurrency(yearlyLosses.equipment * 0.5)} в год`
+                },
+                { 
+                    title: 'Контроль логистики', 
+                    text: `Оптимизация доставки снизит затраты на повторную доставку. Потенциальная экономия: ${formatCurrency(yearlyLosses.redelivery * 0.5)} в год`
+                }
+            ];
+            
+            let recHTML = '';
+            recommendations.forEach(rec => {
+                recHTML += `
+                    <div class="alert alert-info mb-2">
+                        <h6 class="mb-1">${rec.title}</h6>
+                        <p class="mb-0 small">${rec.text}</p>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('recommendations').innerHTML = recHTML;
+            
+            // Построение диаграммы "Структура потерь" с ОБНОВЛЕННЫМИ ЦВЕТАМИ
+            renderChart(categories);
+            
+            // Заполняем секцию для печати/PDF
+            preparePrintSection(monthlyLosses, yearlyLosses, categories, plannedMarginPercent, actualMarginPercent, data);
+        }
+        
+        function renderChart(categories) {
+            const ctx = document.getElementById('losses-chart').getContext('2d');
+            
+            // Уничтожаем предыдущую диаграмму, если она существует
+            if (lossesChart) {
+                lossesChart.destroy();
+            }
+            
+            lossesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories.map(c => c.name),
+                    datasets: [{
+                        data: categories.map(c => c.value),
+                        backgroundColor: categories.map(c => c.color),
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                        hoverBorderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function preparePrintSection(monthlyLosses, yearlyLosses, categories, plannedMarginPercent, actualMarginPercent, data) {
+            const printSection = document.getElementById('print-section');
+            const now = new Date();
+            
+            let categoriesHTML = '';
+            categories.forEach(cat => {
+                const percent = (cat.value / monthlyLosses.total * 100).toFixed(1);
+                categoriesHTML += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${cat.name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(cat.value)}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(cat.yearly)}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${percent}%</td>
+                    </tr>
+                `;
+            });
+            
+            // Формула расчета повторной доставки для пояснения в отчете
+            const defectCount = document.getElementById('defects-count').value;
+            const avgArea = document.getElementById('avg-defect-area').value;
+            const deliveryCost = document.getElementById('redelivery-cost').value;
+            const redeliveryCalc = `${defectCount} шт × ${avgArea} м²/шт × ${deliveryCost} руб/м² = ${formatCurrency(monthlyLosses.redelivery)}/мес`;
+            
+            printSection.innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto;">
+                    <!-- Заголовок -->
+                    <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2c3e50; padding-bottom: 20px;">
+                        <h1 style="color: #2c3e50; margin-bottom: 10px;">Анализ производственных потерь СП</h1>
+                        <p style="color: #666; font-size: 16px;">Отчет сформирован: ${now.toLocaleDateString('ru-RU')}</p>
+                    </div>
+                    
+                    <!-- Сводные показатели -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                        <h3 style="color: #2c3e50; margin-bottom: 20px;">Сводные показатели</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h4 style="color: #27ae60; margin-bottom: 10px;">Плановая маржа</h4>
+                                <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${plannedMarginPercent}%</div>
+                            </div>
+                            <div>
+                                <h4 style="color: #e74c3c; margin-bottom: 10px;">Фактическая маржа</h4>
+                                <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">${actualMarginPercent}%</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <p style="margin: 5px 0;"><strong>Общие потери в год:</strong></p>
+                                    <div style="font-size: 20px; font-weight: bold; color: #e74c3c;">${formatCurrency(yearlyLosses.total)}</div>
+                                </div>
+                                <div>
+                                    <p style="margin: 5px 0;"><strong>Потенциальная экономия:</strong></p>
+                                    <div style="font-size: 20px; font-weight: bold; color: #27ae60;">${formatCurrency(yearlyLosses.total * 0.8)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Пояснение расчета повторной доставки -->
+                    <div style="background: #fff8e1; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ff9800;">
+                        <h4 style="color: #ff9800; margin-bottom: 10px;">Расчет повторной доставки:</h4>
+                        <p style="margin: 5px 0; font-size: 14px;">${redeliveryCalc}</p>
+                        <p style="margin: 5px 0; font-size: 12px; color: #666;"><em>Примечание: Расчет учитывает только площадь бракованной продукции, а не весь объем производства.</em></p>
+                    </div>
+                    
+                    <!-- Таблица потерь -->
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="color: #2c3e50; margin-bottom: 20px;">Детализация потерь</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background-color: #2c3e50; color: white;">
+                                    <th style="padding: 12px; text-align: left;">Категория потерь</th>
+                                    <th style="padding: 12px; text-align: right;">Сумма в месяц</th>
+                                    <th style="padding: 12px; text-align: right;">Сумма в год</th>
+                                    <th style="padding: 12px; text-align: center;">% от общих</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${categoriesHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Подвал -->
+                    <div style="text-align: center; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+                        <p>Анализатор производственных расходов СП | Версия 2.0</p>
+                        <p>Отчет сформирован автоматически. Для детализации обращайтесь в систему.</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function resetForm() {
+            document.getElementById('expense-form').reset();
+            updatePercentages();
+            document.getElementById('results-section').style.display = 'none';
+            
+            // Уничтожаем диаграмму при сбросе
+            if (lossesChart) {
+                lossesChart.destroy();
+                lossesChart = null;
+            }
+        }
+        
+        // Функция для генерации PDF через печать
+        function generatePDFReport() {
+            if (!document.getElementById('results-section').style.display || 
+                document.getElementById('results-section').style.display === 'none') {
+                alert('Сначала выполните расчет потерь!');
+                return;
+            }
+            
+            const loadingElement = document.getElementById('pdf-loading');
+            loadingElement.style.display = 'flex';
+            
+            setTimeout(() => {
+                try {
+                    const printSection = document.getElementById('print-section');
+                    printSection.style.display = 'block';
+                    
+                    const originalBodyStyle = document.body.style.cssText;
+                    
+                    document.body.style.cssText = `
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                    `;
+                    
+                    const allElements = document.body.children;
+                    for (let element of allElements) {
+                        if (element.id !== 'print-section') {
+                            element.style.display = 'none';
+                        }
+                    }
+                    
+                    window.print();
+                    
+                    setTimeout(() => {
+                        for (let element of allElements) {
+                            if (element.id !== 'print-section') {
+                                element.style.display = '';
+                            }
+                        }
+                        
+                        document.body.style.cssText = originalBodyStyle;
+                        printSection.style.display = 'none';
+                        loadingElement.style.display = 'none';
+                        
+                        alert('Отчет готов к сохранению! В диалоге печати выберите "Сохранить как PDF" в качестве принтера.');
+                        
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('Ошибка при формировании отчета:', error);
+                    document.getElementById('pdf-loading').style.display = 'none';
+                    alert('Ошибка при формировании отчета. Пожалуйста, используйте функцию печати браузера (Ctrl+P) на этой странице.');
+                }
+            }, 500);
+        }
+        
+        // Автоматический расчет при загрузке
+        window.addEventListener('load', function() {
+            updatePercentages();
+            setTimeout(() => {
+                calculateLosses();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
