@@ -385,14 +385,6 @@
                                 <small class="text-muted">При устранении 80% потерь</small>
                             </div>
                             
-                            <div class="mt-4">
-                                <h6><i class="bi bi-currency-exchange"></i> Формирование отчета</h6>
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary" onclick="generatePDFReport()">
-                                        <i class="bi bi-file-earmark-pdf"></i> Сформировать отчет PDF
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -788,62 +780,6 @@
                 lossesChart.destroy();
                 lossesChart = null;
             }
-        }
-        
-        // Функция для генерации PDF через печать
-        function generatePDFReport() {
-            if (!document.getElementById('results-section').style.display || 
-                document.getElementById('results-section').style.display === 'none') {
-                alert('Сначала выполните расчет потерь!');
-                return;
-            }
-            
-            const loadingElement = document.getElementById('pdf-loading');
-            loadingElement.style.display = 'flex';
-            
-            setTimeout(() => {
-                try {
-                    const printSection = document.getElementById('print-section');
-                    printSection.style.display = 'block';
-                    
-                    const originalBodyStyle = document.body.style.cssText;
-                    
-                    document.body.style.cssText = `
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        background: white !important;
-                    `;
-                    
-                    const allElements = document.body.children;
-                    for (let element of allElements) {
-                        if (element.id !== 'print-section') {
-                            element.style.display = 'none';
-                        }
-                    }
-                    
-                    window.print();
-                    
-                    setTimeout(() => {
-                        for (let element of allElements) {
-                            if (element.id !== 'print-section') {
-                                element.style.display = '';
-                            }
-                        }
-                        
-                        document.body.style.cssText = originalBodyStyle;
-                        printSection.style.display = 'none';
-                        loadingElement.style.display = 'none';
-                        
-                        alert('Отчет готов к сохранению! В диалоге печати выберите "Сохранить как PDF" в качестве принтера.');
-                        
-                    }, 100);
-                    
-                } catch (error) {
-                    console.error('Ошибка при формировании отчета:', error);
-                    document.getElementById('pdf-loading').style.display = 'none';
-                    alert('Ошибка при формировании отчета. Пожалуйста, используйте функцию печати браузера (Ctrl+P) на этой странице.');
-                }
-            }, 500);
         }
         
         // Автоматический расчет при загрузке
