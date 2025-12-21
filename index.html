@@ -178,7 +178,7 @@
             display: flex;
             align-items: center; /* Вертикальное выравнивание по центру */
             height: 100%;
-            min-height: 56px; /* Минимальная высота, примерно как у поле ввода */
+            min-height: 56px; /* Минимальная высота, примерно как у поля ввода */
         }
         
         .defects-info small {
@@ -234,11 +234,6 @@
                                 <label class="form-label">Плановая маржинальность, %</label>
                                 <input type="number" class="form-control" id="target-margin" value="5" min="0" max="50" step="0.5" required>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Средняя цена СПО, руб/м²</label>
-                                <input type="number" class="form-control" id="spo-price" value="1600" min="500" step="50" required>
-                            </div>
                         </div>
                         
                         <div class="col-md-6">
@@ -262,7 +257,18 @@
                                     <div class="progress-bar progress-bar-spd" style="width: 35%">СПД: 35%</div>
                                 </div>
                             </div>
-                            
+                        </div>
+                    </div>
+                    
+                    <!-- Новый ряд для цен СПО и СПД -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Средняя цена СПО, руб/м²</label>
+                                <input type="number" class="form-control" id="spo-price" value="1600" min="500" step="50" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Средняя цена СПД, руб/м²</label>
                                 <input type="number" class="form-control" id="spd-price" value="2200" min="800" step="50" required>
