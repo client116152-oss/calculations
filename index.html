@@ -168,6 +168,34 @@
         .table th:last-child, .table td:last-child {
             min-width: 100px;
         }
+        
+        /* Стиль для отображения среднего количества рекламаций в месяц */
+        .defects-info {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            border-left: 3px solid var(--blue-color);
+            display: flex;
+            align-items: center; /* Вертикальное выравнивание по центру */
+            height: 100%;
+            min-height: 56px; /* Минимальная высота, примерно как у поле ввода */
+        }
+        
+        .defects-info small {
+            font-size: 0.9rem;
+            color: #333;
+            margin: 0; /* Убираем отступы у параграфа */
+        }
+        
+        /* На мобильных устройствах показываем среднее количество под полем ввода */
+        @media (max-width: 767px) {
+            .defects-info {
+                margin-top: 10px;
+                height: auto;
+                margin-bottom: 15px;
+                min-height: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -245,20 +273,31 @@
                     <hr>
                     
                     <h5 class="mb-3"><i class="bi bi-exclamation-triangle"></i> Данные по рекламациям и браку</h5>
-                    <div class="row">
-                        <div class="col-md-4">
+                    
+                    <!-- Первый ряд: поле ввода и среднее количество (рядом на десктопе, друг под другом на мобильном) -->
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Количество рекламаций в год, шт</label>
-                                <input type="number" class="form-control" id="defects-count" value="300" min="0" step="1" required>
+                                <label class="form-label">Количество рекламаций и брака в год, шт</label>
+                                <input type="number" class="form-control" id="defects-count" value="300" min="0" step="1" required oninput="calculateAverageDefects()">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
+                            <div id="average-defects" class="defects-info">
+                                <small>Среднее количество рекламаций в месяц: <span id="monthly-defects-count" class="fw-bold">25</span> шт</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Второй ряд: два оставшихся поля -->
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Средняя стоимость переделки, руб/шт</label>
                                 <input type="number" class="form-control" id="defect-cost" value="7200" min="0" step="100" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Средняя площадь брака, м²/шт</label>
                                 <input type="number" class="form-control" id="avg-defect-area" value="1.2" min="0.5" max="5" step="0.1" required>
@@ -268,21 +307,33 @@
                     
                     <hr>
                     
-                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Дополнительные расходы</h5>
+                    <h5 class="mb-3"><i class="bi bi-tools"></i> Расходы на ремонт оборудования</h5>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Ремонт оборудования, руб/год</label>
-                                <input type="number" class="form-control" id="repair-cost" value="360000" min="0" step="1000" required>
+                                <label class="form-label">Зарплата дополнительных сотрудников, руб/год</label>
+                                <input type="number" class="form-control" id="salary-cost" value="200000" min="0" step="1000" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Расходы на покупку запчастей, руб/год</label>
+                                <input type="number" class="form-control" id="parts-cost" value="160000" min="0" step="1000" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Дополнительные расходы</h5>
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Доп. скидки клиентам, руб/год</label>
                                 <input type="number" class="form-control" id="discounts-cost" value="600000" min="0" step="1000" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Повторная доставка, руб/м²</label>
                                 <input type="number" class="form-control" id="redelivery-cost" value="50" min="0" step="5" required>
@@ -448,6 +499,13 @@
             updatePercentages();
         });
         
+        // Функция для расчета среднего количества рекламаций в месяц
+        function calculateAverageDefects() {
+            const defectsCount = parseFloat(document.getElementById('defects-count').value) || 0;
+            const monthlyDefects = Math.round(defectsCount / 12 * 10) / 10; // Округляем до одного знака после запятой
+            document.getElementById('monthly-defects-count').textContent = monthlyDefects;
+        }
+        
         function updatePercentages() {
             let spoPercent = parseInt(spoPercentInput.value) || 0;
             let spdPercent = parseInt(spdPercentInput.value) || 0;
@@ -484,6 +542,11 @@
             const yearlyVolume = parseFloat(document.getElementById('yearly-volume').value);
             const monthlyVolume = yearlyVolume / 12;
             
+            // Получаем значения из новых полей и суммируем их
+            const salaryCost = parseFloat(document.getElementById('salary-cost').value) || 0;
+            const partsCost = parseFloat(document.getElementById('parts-cost').value) || 0;
+            const repairCost = salaryCost + partsCost; // Суммируем зарплату и запчасти
+            
             const data = {
                 monthlyVolume: monthlyVolume,
                 spoPercent: percentages.spoPercent / 100,
@@ -495,10 +558,12 @@
                 defectCost: parseFloat(document.getElementById('defect-cost').value),
                 avgDefectArea: parseFloat(document.getElementById('avg-defect-area').value),
                 redeliveryCost: parseFloat(document.getElementById('redelivery-cost').value),
-                repairCost: parseFloat(document.getElementById('repair-cost').value),
+                repairCost: repairCost, // Используем сумму зарплаты и запчастей
                 discountsCost: parseFloat(document.getElementById('discounts-cost').value),
                 sealantPrice: parseFloat(document.getElementById('sealant-price').value),
-                purchasedKits: parseFloat(document.getElementById('purchased-kits').value)
+                purchasedKits: parseFloat(document.getElementById('purchased-kits').value),
+                salaryCost: salaryCost, // Сохраняем отдельно для отображения
+                partsCost: partsCost    // Сохраняем отдельно для отображения
             };
             
             // Расчет объемов
@@ -512,7 +577,7 @@
             const monthlyRedeliveryCost = (yearlySpoiledVolume * data.redeliveryCost) / 12;
             
             const monthlyDiscountsCost = data.discountsCost / 12;
-            const monthlyRepairCost = data.repairCost / 12;
+            const monthlyRepairCost = data.repairCost / 12; // repairCost теперь сумма зарплаты и запчастей
             
             // Месячные потери
             const monthlyLosses = {
@@ -650,6 +715,10 @@
                         <div class="col-md-6">
                             <p class="mb-1"><strong>Закупочная цена:</strong> ${formatCurrency(data.sealantPrice)}</p>
                             <p class="mb-1"><strong>Ремонт оборудования (год):</strong> ${formatCurrency(data.repairCost)}</p>
+                            <div class="ms-3">
+                                <small>• Зарплата сотрудников: ${formatCurrency(data.salaryCost)}</small><br>
+                                <small>• Запчасти: ${formatCurrency(data.partsCost)}</small>
+                            </div>
                             <p class="mb-1"><strong>Брак и рекламации (год):</strong> ${formatCurrency(data.defectsCount * data.defectCost)}</p>
                             <p class="mb-1"><strong>Дополнительные скидки (год):</strong> ${formatCurrency(data.discountsCost)}</p>
                             <p class="mb-1"><strong>Количество комплектующих:</strong> ${data.purchasedKits} шт</p>
@@ -730,12 +799,14 @@
             document.getElementById('defect-cost').value = 0;
             document.getElementById('avg-defect-area').value = 0;
             document.getElementById('redelivery-cost').value = 0;
-            document.getElementById('repair-cost').value = 0;
+            document.getElementById('salary-cost').value = 0;
+            document.getElementById('parts-cost').value = 0;
             document.getElementById('discounts-cost').value = 0;
             document.getElementById('sealant-price').value = 0;
             document.getElementById('purchased-kits').value = 0;
             
             updatePercentages();
+            calculateAverageDefects();
             document.getElementById('results-section').style.display = 'none';
             
             if (lossesChart) {
@@ -755,12 +826,14 @@
             document.getElementById('defect-cost').value = 7200;
             document.getElementById('avg-defect-area').value = 1.2;
             document.getElementById('redelivery-cost').value = 50;
-            document.getElementById('repair-cost').value = 360000;
+            document.getElementById('salary-cost').value = 200000;
+            document.getElementById('parts-cost').value = 160000;
             document.getElementById('discounts-cost').value = 600000;
             document.getElementById('sealant-price').value = 220;
             document.getElementById('purchased-kits').value = 5000;
             
             updatePercentages();
+            calculateAverageDefects();
         }
         
         window.addEventListener('load', function() {
