@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализатор расходов производства СП</title>
+    <title>Расчет эффективности комплектующих СП</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
@@ -13,8 +13,9 @@
             --danger-color: #e74c3c;
             --success-color: #2ecc71;
             --warning-color: #f39c12;
-            --blue-color: #0066cc;
+            --blue-color: #0066cc; /* Цвет СПО для всех элементов */
             --orange-color: #ff9900;
+            --table-header-color: #0a1a3a; /* Темно-синий цвет для шапки таблицы */
         }
         
         body {
@@ -23,7 +24,7 @@
         }
         
         .header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background-color: #004080; /* Темнее и насыщеннее цвет шапки */
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
@@ -43,15 +44,40 @@
         
         .section-title {
             color: var(--primary-color);
-            border-bottom: 3px solid var(--secondary-color);
+            border-bottom: 3px solid var(--blue-color);
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
         
+        /* Таблица с заголовками в одну строку и темным фоном */
         .table th {
-            background-color: var(--primary-color);
+            background-color: var(--table-header-color); /* Темно-синий цвет */
             color: white;
             border: none;
+            white-space: nowrap; /* Заголовки в одну строку */
+            vertical-align: middle;
+            padding: 12px 15px;
+            font-weight: 600;
+        }
+        
+        /* Убираем горизонтальную прокрутку на больших экранах */
+        @media (min-width: 992px) {
+            .table-responsive {
+                overflow-x: visible; /* Убираем прокрутку на больших экранах */
+            }
+            
+            /* Оптимизация отступов для лучшего отображения */
+            .table th, .table td {
+                padding: 10px 12px;
+            }
+        }
+        
+        /* Прокрутка только на маленьких экранах */
+        @media (max-width: 991px) {
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
         }
         
         .table td {
@@ -70,7 +96,7 @@
         }
         
         .btn-primary {
-            background-color: var(--secondary-color);
+            background-color: var(--blue-color);
             border: none;
             padding: 10px 30px;
             border-radius: 25px;
@@ -78,7 +104,7 @@
         }
         
         .btn-primary:hover {
-            background-color: var(--primary-color);
+            background-color: #0052a3;
             transform: translateY(-2px);
         }
         
@@ -91,6 +117,57 @@
             position: relative;
             margin-top: 20px;
         }
+        
+        .red-border {
+            border: 2px solid #e74c3c !important;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        /* Стили для горизонтальных разделительных линий - цвет СПО */
+        hr {
+            border-color: var(--blue-color) !important;
+            border-width: 2px !important;
+            opacity: 0.7 !important;
+        }
+        
+        /* Стили для прогресс-бара соотношения СПО/СПД */
+        .progress-bar-spo {
+            background-color: var(--blue-color) !important;
+        }
+        
+        .progress-bar-spd {
+            background-color: var(--orange-color) !important;
+        }
+        
+        /* Цвет для цифр "Фактическая цена за комплект" */
+        .actual-price {
+            color: var(--blue-color) !important;
+            font-weight: bold;
+        }
+        
+        /* Уменьшаем размеры ячеек для лучшего отображения на всех экранах */
+        .table th, .table td {
+            font-size: 0.9rem;
+        }
+        
+        .table th:first-child, .table td:first-child {
+            min-width: 150px;
+        }
+        
+        .table th:nth-child(2), .table td:nth-child(2),
+        .table th:nth-child(3), .table td:nth-child(3) {
+            min-width: 120px;
+        }
+        
+        .table th:nth-child(4), .table td:nth-child(4) {
+            min-width: 140px;
+        }
+        
+        .table th:last-child, .table td:last-child {
+            min-width: 100px;
+        }
     </style>
 </head>
 <body>
@@ -98,8 +175,8 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1><i class="bi bi-graph-down"></i> Анализатор производственных расходов СП</h1>
-                    <p class="lead">Выявите скрытые потери и оптимизируйте затраты на производстве светопрозрачных конструкций</p>
+                    <h1><i class="bi bi-graph-down"></i> Расчет эффективности комплектующих СП</h1>
+                    <p class="lead">Анализ затрат и оптимизация использования материалов в производстве светопрозрачных конструкций</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="card text-dark p-3">
@@ -153,8 +230,8 @@
                             </div>
                             <div class="mb-3">
                                 <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar" style="width: 65%; background-color: var(--blue-color)">СПО: 65%</div>
-                                    <div class="progress-bar" style="width: 35%; background-color: var(--orange-color)">СПД: 35%</div>
+                                    <div class="progress-bar progress-bar-spo" style="width: 65%">СПО: 65%</div>
+                                    <div class="progress-bar progress-bar-spd" style="width: 35%">СПД: 35%</div>
                                 </div>
                             </div>
                             
@@ -207,8 +284,8 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label class="form-label">Перерасход герметика, %</label>
-                                <input type="number" class="form-control" id="overconsumption" value="12" min="0" max="100" step="0.5" required>
+                                <label class="form-label">Повторная доставка, руб/м²</label>
+                                <input type="number" class="form-control" id="redelivery-cost" value="50" min="0" step="5" required>
                             </div>
                         </div>
                     </div>
@@ -217,19 +294,13 @@
                     
                     <h5 class="mb-3"><i class="bi bi-calculator"></i> Расчет фактической стоимости герметика</h5>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Закупочная цена герметика, руб/литр</label>
+                                <label class="form-label">Закупочная цена герметика за комплект</label>
                                 <input type="number" class="form-control" id="sealant-price" value="220" min="50" step="5" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Повторная доставка, руб/м²</label>
-                                <input type="number" class="form-control" id="redelivery-cost" value="50" min="0" step="5" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Количество купленных комплектов</label>
                                 <input type="number" class="form-control" id="purchased-kits" value="5000" min="100" step="100" required>
@@ -257,6 +328,7 @@
                         <div class="card-body">
                             <h3 class="section-title"><i class="bi bi-clipboard-data"></i> Выявленные потери</h3>
                             
+                            <!-- Исправлено: используем table-responsive без модификатора для правильной работы -->
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -283,7 +355,7 @@
                             
                             <div class="mt-4">
                                 <h5><i class="bi bi-currency-exchange"></i> Фактическая цена герметика</h5>
-                                <div id="sealant-calc">
+                                <div id="sealant-calc" class="red-border">
                                     <!-- Заполняется JavaScript -->
                                 </div>
                             </div>
@@ -313,6 +385,16 @@
                                 </div>
                                 <div class="progress">
                                     <div class="progress-bar bg-warning" id="actual-margin-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Снижение маржи</span>
+                                    <strong id="margin-reduction">0%</strong>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-danger" id="margin-reduction-bar" style="width: 0%"></div>
                                 </div>
                             </div>
                             
@@ -383,10 +465,15 @@
             spoPercent = Math.min(100, Math.max(0, spoPercent));
             spdPercent = Math.min(100, Math.max(0, spdPercent));
             
-            document.querySelector('.progress-bar:nth-child(1)').style.width = spoPercent + '%';
-            document.querySelector('.progress-bar:nth-child(1)').textContent = 'СПО: ' + spoPercent + '%';
-            document.querySelector('.progress-bar:nth-child(2)').style.width = spdPercent + '%';
-            document.querySelector('.progress-bar:nth-child(2)').textContent = 'СПД: ' + spdPercent + '%';
+            const spoProgressBar = document.querySelector('.progress-bar-spo');
+            const spdProgressBar = document.querySelector('.progress-bar-spd');
+            
+            if (spoProgressBar && spdProgressBar) {
+                spoProgressBar.style.width = spoPercent + '%';
+                spoProgressBar.textContent = 'СПО: ' + spoPercent + '%';
+                spdProgressBar.style.width = spdPercent + '%';
+                spdProgressBar.textContent = 'СПД: ' + spdPercent + '%';
+            }
             
             return { spoPercent, spdPercent };
         }
@@ -404,13 +491,12 @@
                 spoPrice: parseFloat(document.getElementById('spo-price').value),
                 spdPrice: parseFloat(document.getElementById('spd-price').value),
                 targetMargin: parseFloat(document.getElementById('target-margin').value) / 100,
-                defectsCount: parseFloat(document.getElementById('defects-count').value), // Теперь ГОДОВЫЕ рекламации
+                defectsCount: parseFloat(document.getElementById('defects-count').value),
                 defectCost: parseFloat(document.getElementById('defect-cost').value),
                 avgDefectArea: parseFloat(document.getElementById('avg-defect-area').value),
                 redeliveryCost: parseFloat(document.getElementById('redelivery-cost').value),
                 repairCost: parseFloat(document.getElementById('repair-cost').value),
                 discountsCost: parseFloat(document.getElementById('discounts-cost').value),
-                overconsumption: parseFloat(document.getElementById('overconsumption').value) / 100,
                 sealantPrice: parseFloat(document.getElementById('sealant-price').value),
                 purchasedKits: parseFloat(document.getElementById('purchased-kits').value)
             };
@@ -419,33 +505,21 @@
             const spoVolume = data.monthlyVolume * data.spoPercent;
             const spdVolume = data.monthlyVolume * data.spdPercent;
             
-            // Нормы расхода герметика
-            const sealantNormSPO = 0.15;
-            const sealantNormSPD = 0.30;
-            
             // РАСЧЕТ ПОТЕРЬ (в месяц)
-            // Потери от брака (теперь из годовых переводим в месячные)
             const monthlyDefectsCost = (data.defectsCount * data.defectCost) / 12;
             
-            // Потери от повторной доставки (годовые → месячные)
             const yearlySpoiledVolume = data.defectsCount * data.avgDefectArea;
             const monthlyRedeliveryCost = (yearlySpoiledVolume * data.redeliveryCost) / 12;
             
-            // Остальные потери (уже в годовых, переводим в месячные)
             const monthlyDiscountsCost = data.discountsCost / 12;
             const monthlyRepairCost = data.repairCost / 12;
-            
-            // Перерасход герметика (в месяц)
-            const monthlyOverconsumptionCost = (spoVolume * sealantNormSPO + spdVolume * sealantNormSPD) * 
-                                             data.overconsumption * data.sealantPrice;
             
             // Месячные потери
             const monthlyLosses = {
                 defects: monthlyDefectsCost,
                 redelivery: monthlyRedeliveryCost,
                 discounts: monthlyDiscountsCost,
-                equipment: monthlyRepairCost,
-                overconsumption: monthlyOverconsumptionCost
+                equipment: monthlyRepairCost
             };
             
             // ИТОГ: общие потери в месяц
@@ -457,7 +531,6 @@
                 redelivery: monthlyLosses.redelivery * 12,
                 discounts: monthlyLosses.discounts * 12,
                 equipment: monthlyLosses.equipment * 12,
-                overconsumption: monthlyLosses.overconsumption * 12,
                 total: monthlyLosses.total * 12
             };
             
@@ -468,12 +541,15 @@
             const actualMargin = Math.max(0, plannedMargin - yearlyLosses.total);
             const actualMarginPercent = Math.max(0, (actualMargin / yearlyRevenue) * 100);
             
-            // Расчет фактической цены герметика
+            // Расчет снижения маржи в процентах
+            const marginReductionPercent = Math.max(0, ((plannedMargin - actualMargin) / plannedMargin) * 100);
+            
+            // Расчет фактической цены герметика за комплект
             const actualSealantPrice = data.sealantPrice + 
                                      (data.repairCost + (data.defectsCount * data.defectCost) + data.discountsCost) / 
                                      data.purchasedKits;
             
-            displayResults(monthlyLosses, yearlyLosses, yearlyRevenue, plannedMargin, actualMarginPercent, data, actualSealantPrice);
+            displayResults(monthlyLosses, yearlyLosses, yearlyRevenue, plannedMargin, actualMarginPercent, marginReductionPercent, data, actualSealantPrice);
             document.getElementById('results-section').style.display = 'block';
         }
         
@@ -486,7 +562,7 @@
             }).format(amount);
         }
         
-        function displayResults(monthlyLosses, yearlyLosses, revenue, plannedMargin, actualMarginPercent, data, actualSealantPrice) {
+        function displayResults(monthlyLosses, yearlyLosses, revenue, plannedMargin, actualMarginPercent, marginReductionPercent, data, actualSealantPrice) {
             // Общие потери
             document.getElementById('total-losses-year').textContent = formatCurrency(yearlyLosses.total);
             document.getElementById('total-losses-per-month').textContent = formatCurrency(monthlyLosses.total);
@@ -499,24 +575,27 @@
             document.getElementById('actual-margin').textContent = actualMarginPercent.toFixed(1) + '%';
             document.getElementById('actual-margin-bar').style.width = actualMarginPercent + '%';
             
+            // Снижение маржи
+            document.getElementById('margin-reduction').textContent = marginReductionPercent.toFixed(1) + '%';
+            document.getElementById('margin-reduction-bar').style.width = marginReductionPercent + '%';
+            
             // Годовая экономия
             const yearlySavings = yearlyLosses.total * 0.8;
             document.getElementById('yearly-savings').textContent = formatCurrency(yearlySavings);
             
-            // Таблица потерь (без "Потерь маржи" как отдельной категории)
+            // Таблица потерь (4 категории)
             const categories = [
                 { name: 'Брак и рекламации', value: monthlyLosses.defects, yearly: yearlyLosses.defects, color: '#e74c3c' },
                 { name: 'Повторная доставка', value: monthlyLosses.redelivery, yearly: yearlyLosses.redelivery, color: '#34495e' },
                 { name: 'Дополнительные скидки', value: monthlyLosses.discounts, yearly: yearlyLosses.discounts, color: '#3498db' },
-                { name: 'Ремонт оборудования', value: monthlyLosses.equipment, yearly: yearlyLosses.equipment, color: '#9b59b6' },
-                { name: 'Перерасход материалов', value: monthlyLosses.overconsumption, yearly: yearlyLosses.overconsumption, color: '#1abc9c' }
+                { name: 'Ремонт оборудования', value: monthlyLosses.equipment, yearly: yearlyLosses.equipment, color: '#9b59b6' }
             ];
             
             let tableHTML = '';
             categories.forEach(cat => {
                 const percent = (cat.value / monthlyLosses.total * 100).toFixed(1);
-                const priority = cat.value > monthlyLosses.total * 0.25 ? 'Высокий' : 
-                                cat.value > monthlyLosses.total * 0.1 ? 'Средний' : 'Низкий';
+                const priority = cat.value > monthlyLosses.total * 0.3 ? 'Высокий' : 
+                                cat.value > monthlyLosses.total * 0.15 ? 'Средний' : 'Низкий';
                 
                 tableHTML += `
                     <tr>
@@ -561,24 +640,24 @@
             
             document.getElementById('losses-table').innerHTML = tableHTML;
             
-            // Расчет фактической цены герметика
+            // Расчет фактической цены герметика за комплект
             const sealantCalcHTML = `
-                <div class="alert alert-info">
+                <div>
                     <h6 class="mb-2">Формула расчета:</h6>
-                    <p class="mb-1"><strong>Фактическая цена герметика</strong> = Закупочная цена + (Ремонт оборудования + Брак и рекламации + Дополнительные скидки) / Количество купленных комплектующих</p>
+                    <p class="mb-2"><strong>Фактическая цена герметика за комплект</strong> = Закупочная цена + (Ремонт оборудования + Брак и рекламации + Дополнительные скидки) / Количество купленных комплектующих</p>
                     <hr>
                     <div class="row">
                         <div class="col-md-6">
-                            <p class="mb-1">Закупочная цена: ${formatCurrency(data.sealantPrice)}</p>
-                            <p class="mb-1">Ремонт оборудования (год): ${formatCurrency(data.repairCost)}</p>
-                            <p class="mb-1">Брак и рекламации (год): ${formatCurrency(data.defectsCount * data.defectCost)}</p>
-                            <p class="mb-1">Дополнительные скидки (год): ${formatCurrency(data.discountsCost)}</p>
-                            <p class="mb-1">Количество комплектующих: ${data.purchasedKits} шт</p>
+                            <p class="mb-1"><strong>Закупочная цена:</strong> ${formatCurrency(data.sealantPrice)}</p>
+                            <p class="mb-1"><strong>Ремонт оборудования (год):</strong> ${formatCurrency(data.repairCost)}</p>
+                            <p class="mb-1"><strong>Брак и рекламации (год):</strong> ${formatCurrency(data.defectsCount * data.defectCost)}</p>
+                            <p class="mb-1"><strong>Дополнительные скидки (год):</strong> ${formatCurrency(data.discountsCost)}</p>
+                            <p class="mb-1"><strong>Количество комплектующих:</strong> ${data.purchasedKits} шт</p>
                         </div>
                         <div class="col-md-6">
                             <div class="text-center mt-3">
-                                <h4 class="text-primary">${formatCurrency(actualSealantPrice)}</h4>
-                                <p class="mb-0"><small>Фактическая цена за литр</small></p>
+                                <h4 class="actual-price">${formatCurrency(actualSealantPrice)}</h4>
+                                <p class="mb-0"><small>Фактическая цена за комплект</small></p>
                             </div>
                         </div>
                     </div>
@@ -587,14 +666,13 @@
             
             document.getElementById('sealant-calc').innerHTML = sealantCalcHTML;
             
-            // Построение диаграммы "Структура потерь" (без "Потерь маржи")
+            // Построение диаграммы "Структура потерь" (4 категории)
             renderChart(categories);
         }
         
         function renderChart(categories) {
             const ctx = document.getElementById('losses-chart').getContext('2d');
             
-            // Уничтожаем предыдущую диаграмму, если она существует
             if (lossesChart) {
                 lossesChart.destroy();
             }
@@ -642,7 +720,6 @@
         }
         
         function resetForm() {
-            // Сбрасываем все поля на 0
             document.getElementById('yearly-volume').value = 0;
             document.getElementById('target-margin').value = 0;
             document.getElementById('spo-price').value = 0;
@@ -655,21 +732,18 @@
             document.getElementById('redelivery-cost').value = 0;
             document.getElementById('repair-cost').value = 0;
             document.getElementById('discounts-cost').value = 0;
-            document.getElementById('overconsumption').value = 0;
             document.getElementById('sealant-price').value = 0;
             document.getElementById('purchased-kits').value = 0;
             
             updatePercentages();
             document.getElementById('results-section').style.display = 'none';
             
-            // Уничтожаем диаграмму при сбросе
             if (lossesChart) {
                 lossesChart.destroy();
                 lossesChart = null;
             }
         }
         
-        // Функция для загрузки примера данных
         function loadExample() {
             document.getElementById('yearly-volume').value = 120000;
             document.getElementById('target-margin').value = 5;
@@ -677,20 +751,18 @@
             document.getElementById('spo-percent').value = 65;
             document.getElementById('spd-percent').value = 35;
             document.getElementById('spd-price').value = 2200;
-            document.getElementById('defects-count').value = 300; // Годовые рекламации
+            document.getElementById('defects-count').value = 300;
             document.getElementById('defect-cost').value = 7200;
             document.getElementById('avg-defect-area').value = 1.2;
             document.getElementById('redelivery-cost').value = 50;
             document.getElementById('repair-cost').value = 360000;
             document.getElementById('discounts-cost').value = 600000;
-            document.getElementById('overconsumption').value = 12;
             document.getElementById('sealant-price').value = 220;
             document.getElementById('purchased-kits').value = 5000;
             
             updatePercentages();
         }
         
-        // Автоматический расчет при загрузке
         window.addEventListener('load', function() {
             loadExample();
             setTimeout(() => {
