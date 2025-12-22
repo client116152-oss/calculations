@@ -141,6 +141,31 @@
             background-color: var(--orange-color) !important;
         }
         
+        /* Увеличенный контейнер для прогресс-бара */
+        .ratio-progress-container {
+            margin-top: 10px; /* Опускаем прогресс-бар немного ниже */
+            margin-bottom: 10px;
+        }
+        
+        .ratio-progress {
+            height: 30px !important; /* Увеличили высоту шкалы в 1.5 раза (было 20px) */
+            border-radius: 15px !important; /* Закругление краев */
+            overflow: hidden;
+            font-size: 14px; /* Увеличили шрифт для лучшей читаемости */
+            font-weight: 500;
+        }
+        
+        /* На мобильных устройствах оставляем старую высоту */
+        @media (max-width: 767px) {
+            .ratio-progress {
+                height: 20px !important; /* Старая высота на мобильных */
+                font-size: 12px; /* Старый размер шрифта */
+            }
+            .ratio-progress-container {
+                margin-top: 5px;
+            }
+        }
+        
         /* Цвет для цифр "Фактическая цена за комплект" */
         .actual-price {
             color: var(--blue-color) !important;
@@ -178,7 +203,7 @@
             display: flex;
             align-items: center; /* Вертикальное выравнивание по центру */
             height: 100%;
-            min-height: 56px; /* Минимальная высота, примерно как у поля ввода */
+            min-height: 56px; /* Минимальная высота, примерно как у поле ввода */
         }
         
         .defects-info small {
@@ -251,8 +276,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <div class="progress" style="height: 20px;">
+                            <!-- Увеличенный прогресс-бар -->
+                            <div class="ratio-progress-container">
+                                <div class="progress ratio-progress">
                                     <div class="progress-bar progress-bar-spo" style="width: 65%">СПО: 65%</div>
                                     <div class="progress-bar progress-bar-spd" style="width: 35%">СПД: 35%</div>
                                 </div>
@@ -260,7 +286,7 @@
                         </div>
                     </div>
                     
-                    <!-- Новый ряд для цен СПО и СПД -->
+                    <!-- Ряд для цен СПО и СПД (выровнены горизонтально) -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
