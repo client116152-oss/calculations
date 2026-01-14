@@ -221,6 +221,45 @@
                 min-height: auto;
             }
         }
+        
+        /* Стили для кнопок выбора количества литров */
+        .liter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .liter-btn {
+            flex: 1;
+            padding: 8px 15px;
+            border: 2px solid #dee2e6;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .liter-btn:hover {
+            background-color: #e9ecef;
+        }
+        
+        .liter-btn.active {
+            background-color: var(--blue-color);
+            color: white;
+            border-color: var(--blue-color);
+        }
+        
+        /* Стиль для поля с рассчитанным значением */
+        .calculated-value {
+            background-color: #f8f9fa;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            height: 38px;
+            display: flex;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -252,7 +291,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Объем производства, м²/год</label>
-                                <input type="number" class="form-control" id="yearly-volume" value="120000" min="1200" step="100" required>
+                                <input type="number" class="form-control" id="yearly-volume" value="120000" min="1200" step="100" required oninput="calculateKits()">
                             </div>
                             
                             <div class="mb-3">
@@ -266,13 +305,13 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Доля СПО (однокамерных), %</label>
-                                        <input type="number" class="form-control" id="spo-percent" value="65" min="0" max="100" step="1" required>
+                                        <input type="number" class="form-control" id="spo-percent" value="65" min="0" max="100" step="1" required oninput="updatePercentages(); calculateKits()">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Доля СПД (двухкамерных), %</label>
-                                        <input type="number" class="form-control" id="spd-percent" value="35" min="0" max="100" step="1" required>
+                                        <input type="number" class="form-control" id="spd-percent" value="35" min="0" max="100" step="1" required oninput="updatePercentages(); calculateKits()">
                                     </div>
                                 </div>
                             </div>
@@ -331,15 +370,15 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Средняя площадь брака, м²/шт</label>
-                                <input type="number" class="form-control" id="avg-defect-area" value="1.2" min="0.5" max="5" step="0.1" required>
+                                <label class="form-label">Средняя площадь бракованного стеклопакета, м²</label>
+                                <input type="number" class="form-control" id="avg-defect-area" value="0.8" min="0.5" max="5" step="0.1" required>
                             </div>
                         </div>
                     </div>
                     
                     <hr>
                     
-                    <h5 class="mb-3"><i class="bi bi-tools"></i> Расходы на ремонт оборудования</h5>
+                    <h5 class="mb-3"><i class="bi bi-tools"></i> Расходы на ремонт и обслуживание оборудования</h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -368,7 +407,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Повторная доставка, руб/м²</label>
-                                <input type="number" class="form-control" id="redelivery-cost" value="50" min="0" step="5" required>
+                                <input type="number" class="form-control" id="redelivery-cost" value="500" min="0" step="5" required>
                             </div>
                         </div>
                     </div>
@@ -376,17 +415,40 @@
                     <hr>
                     
                     <h5 class="mb-3"><i class="bi bi-calculator"></i> Расчет фактической стоимости герметика</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Количество, л/комплект</label>
+                            <div class="liter-buttons">
+                                <div class="liter-btn active" data-liters="209" onclick="selectLiterButton(this)">209</div>
+                                <div class="liter-btn" data-liters="210" onclick="selectLiterButton(this)">210</div>
+                                <div class="liter-btn" data-liters="200" onclick="selectLiterButton(this)">200</div>
+                            </div>
+                            <input type="hidden" id="liters-per-kit" value="209">
+                        </div>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Закупочная цена герметика за комплект</label>
-                                <input type="number" class="form-control" id="sealant-price" value="220" min="50" step="5" required>
+                                <label class="form-label">Закупочная цена, руб/л</label>
+                                <input type="number" class="form-control" id="sealant-price-per-liter" value="220" min="50" step="5" required oninput="calculateSealantPricePerKit()">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Количество купленных комплектов</label>
-                                <input type="number" class="form-control" id="purchased-kits" value="5000" min="100" step="100" required>
+                                <label class="form-label">Закупочная цена, руб/комплект</label>
+                                <input type="number" class="form-control" id="sealant-price-per-kit" value="45980" min="50" step="5" required oninput="calculateSealantPricePerLiter()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Количество переработанных комплектов, шт/год</label>
+                                <div class="calculated-value" id="calculated-kits">215</div>
+                                <input type="hidden" id="purchased-kits" value="215">
                             </div>
                         </div>
                     </div>
@@ -531,6 +593,58 @@
             updatePercentages();
         });
         
+        // Функция для выбора кнопки количества литров
+        function selectLiterButton(button) {
+            // Убираем активный класс со всех кнопок
+            document.querySelectorAll('.liter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Добавляем активный класс выбранной кнопке
+            button.classList.add('active');
+            
+            // Устанавливаем значение в скрытое поле
+            const liters = button.getAttribute('data-liters');
+            document.getElementById('liters-per-kit').value = liters;
+            
+            // Пересчитываем связанные поля
+            calculateSealantPricePerKit();
+            calculateKits();
+        }
+        
+        // Функция для расчета закупочной цены за комплект
+        function calculateSealantPricePerKit() {
+            const pricePerLiter = parseFloat(document.getElementById('sealant-price-per-liter').value) || 0;
+            const litersPerKit = parseFloat(document.getElementById('liters-per-kit').value) || 209;
+            const pricePerKit = pricePerLiter * litersPerKit;
+            document.getElementById('sealant-price-per-kit').value = Math.round(pricePerKit);
+        }
+        
+        // Функция для расчета закупочной цены за литр
+        function calculateSealantPricePerLiter() {
+            const pricePerKit = parseFloat(document.getElementById('sealant-price-per-kit').value) || 0;
+            const litersPerKit = parseFloat(document.getElementById('liters-per-kit').value) || 209;
+            const pricePerLiter = pricePerKit / litersPerKit;
+            document.getElementById('sealant-price-per-liter').value = Math.round(pricePerLiter * 100) / 100;
+        }
+        
+        // Функция для расчета количества переработанных комплектов
+        function calculateKits() {
+            const yearlyVolume = parseFloat(document.getElementById('yearly-volume').value) || 0;
+            const spoPercent = parseFloat(document.getElementById('spo-percent').value) || 0;
+            const spdPercent = parseFloat(document.getElementById('spd-percent').value) || 0;
+            const litersPerKit = parseFloat(document.getElementById('liters-per-kit').value) || 209;
+            
+            // Формула: (Объем производства × Процентное значение доли СПО : 100 × 0,44814 + Объем производства × Процентное значение доли СПО : 100 × 0,35851)/Число литров в комплекте
+            // Уточнение: вероятно, для СПД используется свой коэффициент 0.35851
+            const spoPart = yearlyVolume * (spoPercent / 100) * 0.44814;
+            const spdPart = yearlyVolume * (spdPercent / 100) * 0.35851;
+            const calculatedKits = Math.round((spoPart + spdPart) / litersPerKit);
+            
+            document.getElementById('calculated-kits').textContent = calculatedKits;
+            document.getElementById('purchased-kits').value = calculatedKits;
+        }
+        
         // Функция для расчета среднего количества рекламаций в месяц
         function calculateAverageDefects() {
             const defectsCount = parseFloat(document.getElementById('defects-count').value) || 0;
@@ -565,6 +679,7 @@
                 spdProgressBar.textContent = 'СПД: ' + spdPercent + '%';
             }
             
+            calculateKits(); // Пересчитываем количество комплектов при изменении процентов
             return { spoPercent, spdPercent };
         }
         
@@ -592,10 +707,12 @@
                 redeliveryCost: parseFloat(document.getElementById('redelivery-cost').value),
                 repairCost: repairCost, // Используем сумму зарплаты и запчастей
                 discountsCost: parseFloat(document.getElementById('discounts-cost').value),
-                sealantPrice: parseFloat(document.getElementById('sealant-price').value),
+                sealantPrice: parseFloat(document.getElementById('sealant-price-per-kit').value), // Теперь используем цену за комплект
                 purchasedKits: parseFloat(document.getElementById('purchased-kits').value),
                 salaryCost: salaryCost, // Сохраняем отдельно для отображения
-                partsCost: partsCost    // Сохраняем отдельно для отображения
+                partsCost: partsCost,    // Сохраняем отдельно для отображения
+                sealantPricePerLiter: parseFloat(document.getElementById('sealant-price-per-liter').value),
+                litersPerKit: parseFloat(document.getElementById('liters-per-kit').value)
             };
             
             // Расчет объемов
@@ -741,19 +858,21 @@
             const sealantCalcHTML = `
                 <div>
                     <h6 class="mb-2">Формула расчета:</h6>
-                    <p class="mb-2"><strong>Фактическая цена герметика за комплект</strong> = Закупочная цена + (Ремонт оборудования + Брак и рекламации + Дополнительные скидки) / Количество купленных комплектующих</p>
+                    <p class="mb-2"><strong>Фактическая цена герметика за комплект</strong> = Закупочная цена за комплект + (Ремонт оборудования + Брак и рекламации + Дополнительные скидки) / Количество переработанных комплектов</p>
                     <hr>
                     <div class="row">
                         <div class="col-md-6">
-                            <p class="mb-1"><strong>Закупочная цена:</strong> ${formatCurrency(data.sealantPrice)}</p>
-                            <p class="mb-1"><strong>Ремонт оборудования (год):</strong> ${formatCurrency(data.repairCost)}</p>
+                            <p class="mb-1"><strong>Закупочная цена за литр:</strong> ${formatCurrency(data.sealantPricePerLiter)}</p>
+                            <p class="mb-1"><strong>Количество литров в комплекте:</strong> ${data.litersPerKit} л</p>
+                            <p class="mb-1"><strong>Закупочная цена за комплект:</strong> ${formatCurrency(data.sealantPrice)}</p>
+                            <p class="mb-1"><strong>Ремонт и обслуживание оборудования (год):</strong> ${formatCurrency(data.repairCost)}</p>
                             <div class="ms-3">
                                 <small>• Зарплата сотрудников: ${formatCurrency(data.salaryCost)}</small><br>
                                 <small>• Запчасти: ${formatCurrency(data.partsCost)}</small>
                             </div>
                             <p class="mb-1"><strong>Брак и рекламации (год):</strong> ${formatCurrency(data.defectsCount * data.defectCost)}</p>
                             <p class="mb-1"><strong>Дополнительные скидки (год):</strong> ${formatCurrency(data.discountsCost)}</p>
-                            <p class="mb-1"><strong>Количество комплектующих:</strong> ${data.purchasedKits} шт</p>
+                            <p class="mb-1"><strong>Количество переработанных комплектов:</strong> ${data.purchasedKits} шт/год</p>
                         </div>
                         <div class="col-md-6">
                             <div class="text-center mt-3">
@@ -834,11 +953,20 @@
             document.getElementById('salary-cost').value = 0;
             document.getElementById('parts-cost').value = 0;
             document.getElementById('discounts-cost').value = 0;
-            document.getElementById('sealant-price').value = 0;
-            document.getElementById('purchased-kits').value = 0;
+            document.getElementById('sealant-price-per-liter').value = 0;
+            document.getElementById('sealant-price-per-kit').value = 0;
+            
+            // Сброс кнопок к значению по умолчанию
+            document.querySelectorAll('.liter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.liter-btn[data-liters="209"]').classList.add('active');
+            document.getElementById('liters-per-kit').value = 209;
             
             updatePercentages();
             calculateAverageDefects();
+            calculateKits();
+            calculateSealantPricePerKit();
             document.getElementById('results-section').style.display = 'none';
             
             if (lossesChart) {
@@ -856,16 +984,17 @@
             document.getElementById('spd-price').value = 2200;
             document.getElementById('defects-count').value = 300;
             document.getElementById('defect-cost').value = 7200;
-            document.getElementById('avg-defect-area').value = 1.2;
-            document.getElementById('redelivery-cost').value = 50;
+            document.getElementById('avg-defect-area').value = 0.8;
+            document.getElementById('redelivery-cost').value = 500;
             document.getElementById('salary-cost').value = 200000;
             document.getElementById('parts-cost').value = 160000;
             document.getElementById('discounts-cost').value = 600000;
-            document.getElementById('sealant-price').value = 220;
-            document.getElementById('purchased-kits').value = 5000;
+            document.getElementById('sealant-price-per-liter').value = 220;
             
             updatePercentages();
             calculateAverageDefects();
+            calculateKits();
+            calculateSealantPricePerKit();
         }
         
         window.addEventListener('load', function() {
