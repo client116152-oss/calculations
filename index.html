@@ -260,6 +260,24 @@
             display: flex;
             align-items: center;
         }
+        
+        /* Стиль для вычисляемой стоимости переделки */
+        .defect-cost-info {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            border-left: 3px solid var(--blue-color);
+            display: flex;
+            align-items: center; /* Вертикальное выравнивание по центру */
+            height: 100%;
+            min-height: 56px; /* Минимальная высота, примерно как у поле ввода */
+        }
+        
+        .defect-cost-info small {
+            font-size: 0.9rem;
+            color: #333;
+            margin: 0; /* Убираем отступы у параграфа */
+        }
     </style>
 </head>
 <body>
@@ -291,7 +309,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Объем производства, м²/год</label>
-                                <input type="number" class="form-control" id="yearly-volume" value="120000" min="1200" step="100" required oninput="calculateKits()">
+                                <input type="number" class="form-control" id="yearly-volume" value="120000" min="1200" step="100" required oninput="calculateKits(); calculateDefectCost()">
                             </div>
                             
                             <div class="mb-3">
@@ -305,13 +323,13 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Доля СПО (однокамерных), %</label>
-                                        <input type="number" class="form-control" id="spo-percent" value="65" min="0" max="100" step="1" required oninput="updatePercentages(); calculateKits()">
+                                        <input type="number" class="form-control" id="spo-percent" value="65" min="0" max="100" step="1" required oninput="updatePercentages(); calculateKits(); calculateDefectCost()">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Доля СПД (двухкамерных), %</label>
-                                        <input type="number" class="form-control" id="spd-percent" value="35" min="0" max="100" step="1" required oninput="updatePercentages(); calculateKits()">
+                                        <input type="number" class="form-control" id="spd-percent" value="35" min="0" max="100" step="1" required oninput="updatePercentages(); calculateKits(); calculateDefectCost()">
                                     </div>
                                 </div>
                             </div>
@@ -330,13 +348,13 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Средняя цена СПО, руб/м²</label>
-                                <input type="number" class="form-control" id="spo-price" value="1600" min="500" step="50" required>
+                                <input type="number" class="form-control" id="spo-price" value="1600" min="500" step="50" required oninput="calculateDefectCost()">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Средняя цена СПД, руб/м²</label>
-                                <input type="number" class="form-control" id="spd-price" value="2200" min="800" step="50" required>
+                                <input type="number" class="form-control" id="spd-price" value="2200" min="800" step="50" required oninput="calculateDefectCost()">
                             </div>
                         </div>
                     </div>
@@ -345,7 +363,7 @@
                     
                     <h5 class="mb-3"><i class="bi bi-exclamation-triangle"></i> Данные по рекламациям и браку</h5>
                     
-                    <!-- Первый ряд: поле ввода и среднее количество (рядом на десктопе, друг под другом на мобильном) -->
+                    <!-- Первый ряд: поле ввода количества рекламаций и среднее количество -->
                     <div class="row align-items-center">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -360,18 +378,17 @@
                         </div>
                     </div>
                     
-                    <!-- Второй ряд: два оставшихся поля -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Средняя стоимость переделки, руб/шт</label>
-                                <input type="number" class="form-control" id="defect-cost" value="7200" min="0" step="100" required>
-                            </div>
-                        </div>
+                    <!-- Второй ряд: средняя площадь бракованного стеклопакета и расчетная стоимость переделки -->
+                    <div class="row align-items-center">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Средняя площадь бракованного стеклопакета, м²</label>
-                                <input type="number" class="form-control" id="avg-defect-area" value="0.8" min="0.5" max="5" step="0.1" required>
+                                <input type="number" class="form-control" id="avg-defect-area" value="0.8" min="0.5" max="5" step="0.1" required oninput="calculateDefectCost()">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="defect-cost-info" class="defect-cost-info">
+                                <small>Средняя стоимость переделки: <span id="defect-cost-value" class="fw-bold">7200</span> руб/шт</small>
                             </div>
                         </div>
                     </div>
@@ -593,6 +610,31 @@
             updatePercentages();
         });
         
+        // Функция для расчета средней стоимости переделки по формуле
+        function calculateDefectCost() {
+            // Получаем значения из полей формы
+            const yearlyVolume = parseFloat(document.getElementById('yearly-volume').value) || 0;
+            const spoPercent = parseFloat(document.getElementById('spo-percent').value) || 0;
+            const spdPercent = parseFloat(document.getElementById('spd-percent').value) || 0;
+            const spoPrice = parseFloat(document.getElementById('spo-price').value) || 0;
+            const spdPrice = parseFloat(document.getElementById('spd-price').value) || 0;
+            const avgDefectArea = parseFloat(document.getElementById('avg-defect-area').value) || 0;
+            
+            // Формула: (Объем производства × Процентное значение доли СПО : 100 × Средняя цена СПО, руб/м² + 
+            // Объем производства × Процентное значение доли СПД : 100 × Средняя цена СПД, руб/м²) / Объём производства × Средняя площадь бракованного стеклопакета, м²
+            
+            // Упрощаем формулу: (spoPercent/100 * spoPrice + spdPercent/100 * spdPrice) * avgDefectArea
+            const defectCost = ((spoPercent/100 * spoPrice) + (spdPercent/100 * spdPrice)) * avgDefectArea;
+            
+            // Округляем до целого числа
+            const roundedDefectCost = Math.round(defectCost);
+            
+            // Обновляем значение в интерфейсе
+            document.getElementById('defect-cost-value').textContent = roundedDefectCost;
+            
+            return roundedDefectCost;
+        }
+        
         // Функция для выбора кнопки количества литров
         function selectLiterButton(button) {
             // Убираем активный класс со всех кнопок
@@ -635,8 +677,7 @@
             const spdPercent = parseFloat(document.getElementById('spd-percent').value) || 0;
             const litersPerKit = parseFloat(document.getElementById('liters-per-kit').value) || 209;
             
-            // Формула: (Объем производства × Процентное значение доли СПО : 100 × 0,44814 + Объем производства × Процентное значение доли СПО : 100 × 0,35851)/Число литров в комплекте
-            // Уточнение: вероятно, для СПД используется свой коэффициент 0.35851
+            // Формула: (Объем производства × Процентное значение доли СПО : 100 × 0,44814 + Объем производства × Процентное значение доли СПД : 100 × 0,35851)/Число литров в комплекте
             const spoPart = yearlyVolume * (spoPercent / 100) * 0.44814;
             const spdPart = yearlyVolume * (spdPercent / 100) * 0.35851;
             const calculatedKits = Math.round((spoPart + spdPart) / litersPerKit);
@@ -689,6 +730,9 @@
             const yearlyVolume = parseFloat(document.getElementById('yearly-volume').value);
             const monthlyVolume = yearlyVolume / 12;
             
+            // Рассчитываем среднюю стоимость переделки по формуле
+            const defectCost = calculateDefectCost();
+            
             // Получаем значения из новых полей и суммируем их
             const salaryCost = parseFloat(document.getElementById('salary-cost').value) || 0;
             const partsCost = parseFloat(document.getElementById('parts-cost').value) || 0;
@@ -702,7 +746,7 @@
                 spdPrice: parseFloat(document.getElementById('spd-price').value),
                 targetMargin: parseFloat(document.getElementById('target-margin').value) / 100,
                 defectsCount: parseFloat(document.getElementById('defects-count').value),
-                defectCost: parseFloat(document.getElementById('defect-cost').value),
+                defectCost: defectCost, // Используем рассчитанное значение
                 avgDefectArea: parseFloat(document.getElementById('avg-defect-area').value),
                 redeliveryCost: parseFloat(document.getElementById('redelivery-cost').value),
                 repairCost: repairCost, // Используем сумму зарплаты и запчастей
@@ -947,7 +991,6 @@
             document.getElementById('spd-percent').value = 0;
             document.getElementById('spd-price').value = 0;
             document.getElementById('defects-count').value = 0;
-            document.getElementById('defect-cost').value = 0;
             document.getElementById('avg-defect-area').value = 0;
             document.getElementById('redelivery-cost').value = 0;
             document.getElementById('salary-cost').value = 0;
@@ -965,6 +1008,7 @@
             
             updatePercentages();
             calculateAverageDefects();
+            calculateDefectCost();
             calculateKits();
             calculateSealantPricePerKit();
             document.getElementById('results-section').style.display = 'none';
@@ -983,7 +1027,6 @@
             document.getElementById('spd-percent').value = 35;
             document.getElementById('spd-price').value = 2200;
             document.getElementById('defects-count').value = 300;
-            document.getElementById('defect-cost').value = 7200;
             document.getElementById('avg-defect-area').value = 0.8;
             document.getElementById('redelivery-cost').value = 500;
             document.getElementById('salary-cost').value = 200000;
@@ -993,6 +1036,7 @@
             
             updatePercentages();
             calculateAverageDefects();
+            calculateDefectCost();
             calculateKits();
             calculateSealantPricePerKit();
         }
