@@ -399,14 +399,14 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Зарплата дополнительных сотрудников, руб/год</label>
-                                <input type="number" class="form-control" id="salary-cost" value="200000" min="0" step="1000" required>
+                                <label class="form-label">Расходы на покупку запчастей, руб/год</label>
+                                <input type="number" class="form-control" id="parts-cost" value="800000" min="0" step="1000" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Расходы на покупку запчастей, руб/год</label>
-                                <input type="number" class="form-control" id="parts-cost" value="160000" min="0" step="1000" required>
+                                <label class="form-label">Зарплата дополнительных сотрудников, руб/год</label>
+                                <input type="number" class="form-control" id="salary-cost" value="1250000" min="0" step="1000" required>
                             </div>
                         </div>
                     </div>
@@ -911,8 +911,8 @@
                             <p class="mb-1"><strong>Закупочная цена за комплект:</strong> ${formatCurrency(data.sealantPrice)}</p>
                             <p class="mb-1"><strong>Ремонт и обслуживание оборудования (год):</strong> ${formatCurrency(data.repairCost)}</p>
                             <div class="ms-3">
-                                <small>• Зарплата сотрудников: ${formatCurrency(data.salaryCost)}</small><br>
-                                <small>• Запчасти: ${formatCurrency(data.partsCost)}</small>
+                                <small>• Расходы на запчасти: ${formatCurrency(data.partsCost)}</small><br>
+                                <small>• Зарплата сотрудников: ${formatCurrency(data.salaryCost)}</small>
                             </div>
                             <p class="mb-1"><strong>Брак и рекламации (год):</strong> ${formatCurrency(data.defectsCount * data.defectCost)}</p>
                             <p class="mb-1"><strong>Дополнительные скидки (год):</strong> ${formatCurrency(data.discountsCost)}</p>
@@ -993,8 +993,8 @@
             document.getElementById('defects-count').value = 0;
             document.getElementById('avg-defect-area').value = 0;
             document.getElementById('redelivery-cost').value = 0;
-            document.getElementById('salary-cost').value = 0;
             document.getElementById('parts-cost').value = 0;
+            document.getElementById('salary-cost').value = 0;
             document.getElementById('discounts-cost').value = 0;
             document.getElementById('sealant-price-per-liter').value = 0;
             document.getElementById('sealant-price-per-kit').value = 0;
@@ -1029,8 +1029,8 @@
             document.getElementById('defects-count').value = 300;
             document.getElementById('avg-defect-area').value = 0.8;
             document.getElementById('redelivery-cost').value = 500;
-            document.getElementById('salary-cost').value = 200000;
-            document.getElementById('parts-cost').value = 160000;
+            document.getElementById('parts-cost').value = 800000;
+            document.getElementById('salary-cost').value = 1250000;
             document.getElementById('discounts-cost').value = 600000;
             document.getElementById('sealant-price-per-liter').value = 220;
             
